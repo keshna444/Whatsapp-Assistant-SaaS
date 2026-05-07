@@ -1,0 +1,283 @@
+import { Link } from "react-router";
+import { Button, Card, CardContent, CardHeader, CardTitle } from "../components/ui";
+import { MessageSquare, CalendarCheck, Clock, Users, Zap, CheckCircle2, Menu, X } from "lucide-react";
+import bookFlowLogo from "../../styles/BookFlowLogo.png";
+import { useState } from "react";
+
+export function LandingPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2">
+            <img src={bookFlowLogo} alt="BookFlow" className="h-8 w-8 object-contain" />
+            <span className="text-xl font-bold tracking-tight text-slate-900">BookFlow</span>
+          </div>
+
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+            <a href="#features" className="hover:text-slate-900 transition-colors">Features</a>
+            <a href="#pricing" className="hover:text-slate-900 transition-colors">Pricing</a>
+            <div className="flex items-center gap-4 ml-4 border-l border-slate-200 pl-4">
+              <Link to="/login" className="hover:text-slate-900 transition-colors">Log in</Link>
+              <Link to="/signup">
+                <Button size="sm">Start Free Trial</Button>
+              </Link>
+            </div>
+          </nav>
+
+          {/* Mobile Menu Toggle */}
+          <button 
+            className="md:hidden p-2 text-slate-600"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+
+        {/* Mobile Nav */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-200 bg-white p-4">
+            <div className="flex flex-col space-y-4">
+              <a href="#features" className="text-slate-600 font-medium" onClick={() => setMobileMenuOpen(false)}>Features</a>
+              <a href="#pricing" className="text-slate-600 font-medium" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
+              <div className="h-px bg-slate-200 my-2"></div>
+              <Link to="/login" className="text-slate-600 font-medium" onClick={() => setMobileMenuOpen(false)}>Log in</Link>
+              <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
+                <Button fullWidth>Start Free Trial</Button>
+              </Link>
+            </div>
+          </div>
+        )}
+      </header>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden py-16 md:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="flex flex-col space-y-8 text-center lg:text-left">
+              <div className="space-y-4">
+                <div className="inline-flex items-center rounded-full border border-[#25D366]/30 bg-[#25D366]/10 px-3 py-1 text-sm font-medium text-[#1fae54]">
+                  <Zap className="mr-1 h-4 w-4" />
+                  New: AI Auto-booking is live
+                </div>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 leading-tight">
+                  Turn WhatsApp messages into <span className="text-[#25D366]">confirmed bookings</span> automatically
+                </h1>
+                <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto lg:mx-0">
+                  Stop losing customers while you're busy. BookFlow's AI assistant replies instantly, shows your services, and schedules appointments directly in WhatsApp.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                <Link to="/signup" className="w-full sm:w-auto">
+                  <Button size="lg" fullWidth className="text-lg px-8">Start Free Trial</Button>
+                </Link>
+                <Link to="/login" className="w-full sm:w-auto">
+                  <Button size="lg" variant="outline" fullWidth className="text-lg px-8">View Demo</Button>
+                </Link>
+              </div>
+              <div className="flex items-center gap-4 justify-center lg:justify-start text-sm text-slate-500">
+                <div className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-[#25D366]" /> No credit card required</div>
+                <div className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-[#25D366]" /> 14-day free trial</div>
+              </div>
+            </div>
+
+            <div className="relative mx-auto w-full max-w-md lg:max-w-full">
+              <div className="relative rounded-2xl bg-white p-2 shadow-2xl ring-1 ring-slate-200">
+                <div className="rounded-xl bg-slate-50 overflow-hidden">
+                  {/* Mock WhatsApp UI */}
+                  <div className="bg-[#075E54] px-4 py-3 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                      <span className="text-white font-semibold">BF</span>
+                    </div>
+                    <div>
+                      <div className="text-white font-medium">Beauty Studio</div>
+                      <div className="text-white/80 text-xs">AI Assistant online</div>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-[#E5DDD5] space-y-4 h-[400px] overflow-y-auto">
+                    <div className="flex justify-end">
+                      <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%] shadow-sm text-sm">
+                        Hi! I'd like to book a gel manicure for tomorrow afternoon.
+                        <div className="text-[10px] text-gray-500 text-right mt-1">10:42 AM</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <div className="bg-white rounded-lg p-3 max-w-[80%] shadow-sm text-sm">
+                        Hello! 👋 I can help you with that. We have these times available tomorrow afternoon for a Gel Manicure (Rs 800, 45 mins):
+                        <br/><br/>
+                        1. 2:00 PM<br/>
+                        2. 3:30 PM<br/>
+                        3. 4:15 PM
+                        <br/><br/>
+                        Please reply with the number of your preferred time.
+                        <div className="text-[10px] text-gray-500 text-right mt-1">10:42 AM</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%] shadow-sm text-sm">
+                        2
+                        <div className="text-[10px] text-gray-500 text-right mt-1">10:44 AM</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-start">
+                      <div className="bg-white rounded-lg p-3 max-w-[80%] shadow-sm text-sm">
+                        Perfect! I've booked you in for a Gel Manicure tomorrow at 3:30 PM. 🎉
+                        <br/><br/>
+                        You'll receive a reminder 2 hours before your appointment. See you then!
+                        <div className="text-[10px] text-gray-500 text-right mt-1">10:44 AM</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="bg-slate-50 py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Everything you need to manage bookings effortlessly</h2>
+              <p className="mt-4 text-lg text-slate-600">Designed specifically for beauty salons, barbers, and independent technicians.</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card className="border-none shadow-md">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-lg bg-[#25D366]/10 flex items-center justify-center mb-4">
+                    <MessageSquare className="h-6 w-6 text-[#25D366]" />
+                  </div>
+                  <CardTitle>Instant AI Replies</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-600">Never leave a customer waiting. Our AI understands services, checks your calendar, and replies in seconds, 24/7.</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-lg bg-[#25D366]/10 flex items-center justify-center mb-4">
+                    <CalendarCheck className="h-6 w-6 text-[#25D366]" />
+                  </div>
+                  <CardTitle>Smart Scheduling</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-600">Prevents double bookings automatically. Syncs with your existing calendar to show true real-time availability.</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-lg bg-[#25D366]/10 flex items-center justify-center mb-4">
+                    <Clock className="h-6 w-6 text-[#25D366]" />
+                  </div>
+                  <CardTitle>Automated Reminders</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-slate-600">Drastically reduce no-shows. The assistant automatically sends WhatsApp reminders before the appointment.</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section id="pricing" className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Simple, transparent pricing</h2>
+            <p className="mt-4 text-lg text-slate-600">Start for free, upgrade when you need to grow.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <Card className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="text-xl">Starter</CardTitle>
+                <div className="mt-4 flex items-baseline text-5xl font-extrabold text-slate-900">
+                  Rs 990
+                  <span className="ml-1 text-xl font-medium text-slate-500">/mo</span>
+                </div>
+                <p className="mt-4 text-sm text-slate-500">Perfect for independent technicians.</p>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col">
+                <ul className="space-y-4 flex-1 mb-8">
+                  {['Up to 100 bookings/mo', 'Basic AI responses', '1 Calendar sync', 'Manual reminders'].map((feature) => (
+                    <li key={feature} className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-[#25D366]" />
+                      <span className="text-slate-600">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/signup" className="mt-auto">
+                  <Button variant="outline" fullWidth>Start Free Trial</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="flex flex-col border-[#25D366] shadow-lg relative">
+              <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-0 bg-[#25D366] text-white px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full mx-auto w-max left-0">
+                Most Popular
+              </div>
+              <CardHeader>
+                <CardTitle className="text-xl">Professional</CardTitle>
+                <div className="mt-4 flex items-baseline text-5xl font-extrabold text-slate-900">
+                  Rs 2,490
+                  <span className="ml-1 text-xl font-medium text-slate-500">/mo</span>
+                </div>
+                <p className="mt-4 text-sm text-slate-500">For busy salons and teams.</p>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col">
+                <ul className="space-y-4 flex-1 mb-8">
+                  {['Unlimited bookings', 'Advanced AI conversationalist', 'Unlimited Calendar syncs', 'Automated reminders', 'Analytics dashboard'].map((feature) => (
+                    <li key={feature} className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-[#25D366]" />
+                      <span className="text-slate-600">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/signup" className="mt-auto">
+                  <Button fullWidth>Start Free Trial</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="flex flex-col md:col-span-2 lg:col-span-1">
+              <CardHeader>
+                <CardTitle className="text-xl">Enterprise</CardTitle>
+                <div className="mt-4 flex items-baseline text-5xl font-extrabold text-slate-900">
+                  Rs 4,990
+                  <span className="ml-1 text-xl font-medium text-slate-500">/mo</span>
+                </div>
+                <p className="mt-4 text-sm text-slate-500">For multi-location franchises.</p>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col">
+                <ul className="space-y-4 flex-1 mb-8">
+                  {['Everything in Pro', 'Multiple WhatsApp numbers', 'API access', 'Custom integrations', 'Priority support'].map((feature) => (
+                    <li key={feature} className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-[#25D366]" />
+                      <span className="text-slate-600">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/signup" className="mt-auto">
+                  <Button variant="outline" fullWidth>Contact Sales</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 text-center text-slate-400">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <img src={bookFlowLogo} alt="BookFlow" className="h-8 w-8 object-contain" />
+          <span className="text-xl font-bold tracking-tight text-white">BookFlow</span>
+        </div>
+        <p>© 2026 BookFlow Inc. All rights reserved.</p>
+      </footer>
+    </div>
+  );
+}
