@@ -63,6 +63,10 @@ export function BookingsPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const fetchAppointments = async () => {
     setLoading(true);
@@ -84,6 +88,7 @@ export function BookingsPage() {
   const openCreate = () => {
     setEditTarget(null);
     setForm(EMPTY_FORM);
+    setModalError('');
     setShowModal(true);
   };
 
@@ -98,24 +103,36 @@ export function BookingsPage() {
       status: appt.status,
       price: appt.price != null ? String(appt.price) : "",
     });
+    setModalError('');
     setShowModal(true);
     setOpenDropdown(null);
   };
 
   const handleDelete = async (id: string) => {
     setOpenDropdown(null);
-    if (!window.confirm("Delete this appointment?")) return;
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmId) return;
+    const id = deleteConfirmId;
+    setDeleteConfirmId(null);
+    setDeleteError('');
     try {
       await fetch(`${API}/appointments/${id}`, { method: "DELETE" });
       setAppointments(prev => prev.filter(a => a._id !== id));
+      setSuccessMsg('Appointment deleted.');
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch {
-      alert("Failed to delete appointment. Please try again.");
+      setDeleteError('Failed to delete appointment. Please try again.');
+      setTimeout(() => setDeleteError(''), 4000);
     }
   };
 
   const handleSubmit = async () => {
+    setModalError('');
     if (!form.customerName || !form.customerPhone || !form.service || !form.appointmentDate) {
-      alert("Please fill in all required fields.");
+      setModalError('Please fill in all required fields.');
       return;
     }
     setSubmitting(true);
@@ -141,8 +158,10 @@ export function BookingsPage() {
         setAppointments(prev => [...prev, created]);
       }
       setShowModal(false);
+      setSuccessMsg(editTarget ? 'Appointment updated.' : 'Appointment created.');
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch {
-      alert("Failed to save appointment. Please try again.");
+      setModalError('Failed to save appointment. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -168,6 +187,13 @@ export function BookingsPage() {
         </div>
         <Button className="w-full sm:w-auto" onClick={openCreate}>Add Booking</Button>
       </div>
+
+      {successMsg && (
+        <div className="rounded-lg bg-green-50 border border-green-200 text-green-700 px-4 py-3 text-sm font-medium">{successMsg}</div>
+      )}
+      {deleteError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 text-red-600 px-4 py-3 text-sm">{deleteError}</div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
@@ -385,11 +411,28 @@ export function BookingsPage() {
               </div>
             </div>
 
+            {modalError && (
+              <p className="mt-4 text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{modalError}</p>
+            )}
             <div className="flex gap-3 justify-end mt-6">
               <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
               <Button onClick={handleSubmit} disabled={submitting}>
                 {submitting ? "Saving…" : editTarget ? "Update" : "Create"}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Delete Appointment?</h3>
+            <p className="text-sm text-slate-500 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+              <Button variant="danger" onClick={confirmDelete}>Delete</Button>
             </div>
           </div>
         </div>

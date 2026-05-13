@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from "../../components/ui";
 import { Users, Calendar, TrendingUp, MessageCircle, ArrowUpRight, Clock, X, Link2, Copy, Check, ExternalLink } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router";
 
 const API = "http://localhost:5000/api";
 
@@ -84,6 +85,7 @@ const actionDotColor: Record<string, string> = {
 
 export function DashboardOverview() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -93,6 +95,7 @@ export function DashboardOverview() {
   const [form, setForm] = useState<BookingForm>(EMPTY_FORM);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [successToast, setSuccessToast] = useState('');
 
   const bookingSlug = user?.name
     ? user.name.toLowerCase().replace(/\s+/g, '-')
@@ -168,6 +171,8 @@ export function DashboardOverview() {
       }
       setModalOpen(false);
       fetchStats();
+      setSuccessToast('Booking created successfully!');
+      setTimeout(() => setSuccessToast(''), 3500);
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : 'Failed to create booking.');
     } finally {
@@ -176,10 +181,10 @@ export function DashboardOverview() {
   };
 
   const statCards = [
-    { label: "Total Bookings", value: loading ? "…" : String(stats.totalBookings), icon: Calendar, sub: `${stats.completedBookings} completed` },
-    { label: "AI Handled Chats", value: loading ? "…" : String(stats.aiHandledChats), icon: MessageCircle, sub: "conversations" },
-    { label: "Revenue (Est)", value: loading ? "…" : `Rs ${stats.revenue.toLocaleString()}`, icon: TrendingUp, sub: `${stats.totalServices} services` },
-    { label: "Total Customers", value: loading ? "…" : String(stats.totalCustomers), icon: Users, sub: `${stats.newCustomers} new` },
+    { label: "Total Bookings", value: loading ? "…" : String(stats.totalBookings), icon: Calendar, sub: `${stats.completedBookings} completed`, path: "/dashboard/bookings" },
+    { label: "AI Handled Chats", value: loading ? "…" : String(stats.aiHandledChats), icon: MessageCircle, sub: "conversations", path: "/dashboard/conversations" },
+    { label: "Revenue (Est)", value: loading ? "…" : `Rs ${stats.revenue.toLocaleString()}`, icon: TrendingUp, sub: `${stats.totalServices} services`, path: "/dashboard/analytics" },
+    { label: "Total Customers", value: loading ? "…" : String(stats.totalCustomers), icon: Users, sub: `${stats.newCustomers} new`, path: "/dashboard/customers" },
   ];
 
   return (
@@ -198,14 +203,21 @@ export function DashboardOverview() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((stat) => (
-          <Card key={stat.label}>
+          <Card
+            key={stat.label}
+            onClick={() => navigate(stat.path)}
+            className="cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:outline-none"
+            tabIndex={0}
+            role="button"
+            onKeyDown={e => e.key === "Enter" && navigate(stat.path)}
+          >
             <CardContent className="p-6">
               <div className="flex justify-between items-start">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-slate-500">{stat.label}</p>
                   <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
                 </div>
-                <div className="p-2 bg-slate-50 rounded-lg">
+                <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-slate-100 transition-colors">
                   <stat.icon className="w-5 h-5 text-slate-600" />
                 </div>
               </div>
@@ -342,8 +354,30 @@ export function DashboardOverview() {
               {copied && (
                 <p className="text-center text-sm text-[#25D366] font-medium">Booking link copied!</p>
               )}
+              <div className="border-t border-slate-100 pt-4 space-y-3">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(`Book your appointment here: ${bookingUrl}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border border-[#25D366] px-4 py-2.5 text-sm font-medium text-[#25D366] hover:bg-[#25D366]/5 transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Share via WhatsApp
+                </a>
+                <div className="rounded-lg border-2 border-dashed border-slate-200 p-5 text-center text-slate-400">
+                  <div className="text-sm font-medium mb-1">QR Code</div>
+                  <div className="text-xs">Coming soon</div>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {successToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white px-5 py-3 rounded-lg shadow-lg font-medium text-sm flex items-center gap-2">
+          <Check className="w-4 h-4 shrink-0" />
+          {successToast}
         </div>
       )}
 

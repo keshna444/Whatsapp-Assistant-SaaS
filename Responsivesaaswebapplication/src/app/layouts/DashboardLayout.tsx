@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import {
   LayoutDashboard,
@@ -12,10 +12,27 @@ import {
   X,
   Bell,
   LogOut,
+  Bot,
+  CheckCheck,
 } from "lucide-react";
 import bookFlowLogo from "../../styles/BookFlowLogo.png";
 import { cn } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
+
+type Notification = {
+  id: number;
+  text: string;
+  time: string;
+  read: boolean;
+  type: "booking" | "message" | "ai" | "confirmed";
+};
+
+const INITIAL_NOTIFICATIONS: Notification[] = [
+  { id: 1, text: "New booking created — Sarah Connor, Gel Manicure", time: "2 min ago", read: false, type: "booking" },
+  { id: 2, text: "Customer message received — John Smith", time: "15 min ago", read: false, type: "message" },
+  { id: 3, text: "AI replied to customer — Priya Nair", time: "1 hour ago", read: true, type: "ai" },
+  { id: 4, text: "Appointment confirmed — Lisa Ray, Hair Treatment", time: "2 hours ago", read: true, type: "confirmed" },
+];
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/dashboard", end: true },
@@ -29,8 +46,33 @@ const navItems = [
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [aiStatusOpen, setAiStatusOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const aiRef = useRef<HTMLDivElement>(null);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+      if (aiRef.current && !aiRef.current.contains(e.target as Node)) setAiStatusOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setNotifOpen(false); setAiStatusOpen(false); }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
   const handleLogout = () => {
     logout();
@@ -125,14 +167,109 @@ export function DashboardLayout() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#25D366]"></div>
-              <span className="text-sm font-medium text-slate-600 hidden sm:block">AI Active</span>
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Notification Bell */}
+            <div ref={notifRef} className="relative">
+              <button
+                className="relative p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+                onClick={() => { setNotifOpen(v => !v); setAiStatusOpen(false); }}
+                aria-label="Notifications"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-white text-white text-[9px] flex items-center justify-center font-bold px-0.5">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                    <span className="font-semibold text-slate-900 text-sm">Notifications</span>
+                    <button onClick={markAllRead} className="text-xs text-[#25D366] hover:text-[#1fae54] font-medium flex items-center gap-1">
+                      <CheckCheck className="w-3 h-3" /> Mark all as read
+                    </button>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 text-sm">
+                      <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p>No notifications yet.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
+                      {notifications.map(n => (
+                        <div
+                          key={n.id}
+                          className={cn(
+                            "px-4 py-3 hover:bg-slate-50 transition-colors flex items-start gap-3 cursor-pointer",
+                            !n.read && "bg-blue-50/40"
+                          )}
+                          onClick={() => setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))}
+                        >
+                          <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", !n.read ? "bg-[#25D366]" : "bg-slate-200")} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-700 leading-snug">{n.text}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{n.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="px-4 py-3 border-t border-slate-100">
+                    <button className="w-full text-sm text-center text-slate-500 hover:text-slate-900 font-medium py-1 transition-colors">
+                      View all notifications
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* AI Active Status */}
+            <div ref={aiRef} className="relative">
+              <button
+                onClick={() => { setAiStatusOpen(v => !v); setNotifOpen(false); }}
+                className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <div className="w-2 h-2 rounded-full bg-[#25D366] shrink-0" />
+                <span className="text-sm font-medium text-slate-600 hidden sm:block">AI Active</span>
+              </button>
+
+              {aiStatusOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Bot className="w-4 h-4 text-[#25D366]" />
+                    <h4 className="font-semibold text-slate-900 text-sm">AI Assistant Status</h4>
+                  </div>
+                  <div className="space-y-2.5 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500">Status</span>
+                      <span className="font-medium text-[#25D366] flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#25D366] inline-block" />Active
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500">Channel</span>
+                      <span className="font-medium text-slate-700">Demo Web Chat</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500">WhatsApp API</span>
+                      <span className="font-medium text-amber-600">Not connected</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500">Last Reply</span>
+                      <span className="font-medium text-slate-700">Just now</span>
+                    </div>
+                  </div>
+                  <NavLink
+                    to="/dashboard/settings"
+                    onClick={() => setAiStatusOpen(false)}
+                    className="mt-4 w-full flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors"
+                  >
+                    Configure AI
+                  </NavLink>
+                </div>
+              )}
             </div>
           </div>
         </header>
