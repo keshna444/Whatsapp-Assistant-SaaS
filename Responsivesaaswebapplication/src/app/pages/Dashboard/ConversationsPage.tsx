@@ -1,69 +1,270 @@
-import { useState } from "react";
-import { Search, MoreVertical, Phone, Video, Bot, User, ArrowLeft } from "lucide-react";
-import { cn, Input } from "../../components/ui";
+import { useState, useRef, useEffect } from "react";
+import { Search, MoreVertical, Phone, Video, Bot, User, ArrowLeft, MessageSquare, Send, Plus } from "lucide-react";
+import { cn, Input, Button } from "../../components/ui";
 
-const CONVERSATIONS = [
-  { id: 1, name: "Sarah Connor", phone: "+230 5123 4567", lastMessage: "Perfect, see you tomorrow!", time: "10:45 AM", unread: 0, status: "ai_active" },
-  { id: 2, name: "+230 5987 6543", phone: "+230 5987 6543", lastMessage: "Do you offer balayage?", time: "09:30 AM", unread: 2, status: "human_needed" },
-  { id: 3, name: "Emma Watson", phone: "+230 5555 1234", lastMessage: "Can I reschedule my appointment?", time: "Yesterday", unread: 0, status: "ai_active" },
-  { id: 4, name: "Michael Brown", phone: "+230 5777 8888", lastMessage: "Thanks for the reminder.", time: "Yesterday", unread: 0, status: "ai_active" },
-];
+const API = "http://localhost:5000/api";
+
+type Message = {
+  _id?: string;
+  text: string;
+  sender: "user" | "bot";
+  createdAt?: string;
+  time?: string;
+};
+
+type Conversation = {
+  _id: string;
+  phone: string;
+  name: string;
+  lastMessage: string;
+  status: "ai_active" | "human_needed";
+  unread: number;
+  updatedAt: string;
+  messages?: Message[];
+};
+
+function formatTime(dateStr?: string): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffHrs = diffMs / 3600000;
+  if (diffHrs < 1) return `${Math.round(diffMs / 60000)}m ago`;
+  if (diffHrs < 24) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function nowTime() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 
 export function ConversationsPage() {
-  const [activeChat, setActiveChat] = useState<number | null>(1);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConv, setActiveConv] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isMobileListVisible, setIsMobileListVisible] = useState(true);
+  const [inputText, setInputText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [loadingConvs, setLoadingConvs] = useState(true);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [newPhone, setNewPhone] = useState("");
+  const [newName, setNewName] = useState("");
+  const [showNewConv, setShowNewConv] = useState(false);
+  const [search, setSearch] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSelectChat = (id: number) => {
-    setActiveChat(id);
-    setIsMobileListVisible(false); // Hide list on mobile when chat is selected
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
+
+  const loadConversations = async () => {
+    setLoadingConvs(true);
+    try {
+      const res = await fetch(`${API}/conversations`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setConversations(data);
+    } catch {
+      setConversations([]);
+    } finally {
+      setLoadingConvs(false);
+    }
   };
 
-  const handleBackToList = () => {
-    setIsMobileListVisible(true);
+  const selectConversation = async (conv: Conversation) => {
+    setActiveConv(conv);
+    setIsMobileListVisible(false);
+    setInputText("");
+    setLoadingMsgs(true);
+    try {
+      const res = await fetch(`${API}/conversations/${conv._id}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setMessages(data.messages || []);
+      setActiveConv(data);
+    } catch {
+      setMessages([]);
+    } finally {
+      setLoadingMsgs(false);
+    }
   };
 
-  const activeUser = CONVERSATIONS.find(c => c.id === activeChat);
+  const createConversation = async () => {
+    if (!newPhone.trim()) return;
+    try {
+      const res = await fetch(`${API}/conversations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: newPhone.trim(), name: newName.trim() || newPhone.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      const conv = await res.json();
+      setConversations(prev => [conv, ...prev]);
+      setShowNewConv(false);
+      setNewPhone("");
+      setNewName("");
+      await selectConversation(conv);
+    } catch {
+      alert("Failed to create conversation.");
+    }
+  };
+
+  const sendMessage = async () => {
+    const text = inputText.trim();
+    if (!text || !activeConv) return;
+
+    const optimisticUser: Message = { text, sender: "user", time: nowTime() };
+    setMessages(prev => [...prev, optimisticUser]);
+    setInputText("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+
+    setIsTyping(true);
+    try {
+      const res = await fetch(`${API}/conversations/${activeConv._id}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      const botMsg: Message = {
+        _id: data.botMessage?._id,
+        text: data.reply ?? "No response",
+        sender: "bot",
+        time: nowTime(),
+      };
+      setMessages(prev => {
+        const withoutOptimistic = prev.slice(0, -1);
+        return [
+          ...withoutOptimistic,
+          data.userMessage ? { ...data.userMessage, time: nowTime() } : optimisticUser,
+          botMsg,
+        ];
+      });
+      setConversations(prev =>
+        prev.map(c => c._id === activeConv._id ? { ...c, lastMessage: text, updatedAt: new Date().toISOString() } : c)
+      );
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { text: "⚠️ Could not reach the server. Please check your backend.", sender: "bot", time: nowTime() },
+      ]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputText(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+  };
+
+  const filtered = conversations.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.phone.includes(search)
+  );
 
   return (
     <div className="h-[calc(100vh-8rem)] -m-4 sm:-m-6 lg:-m-8 bg-white flex overflow-hidden border-t border-slate-200">
-      
-      {/* Sidebar / Conversation List */}
+
+      {/* Sidebar */}
       <div className={cn(
         "w-full md:w-80 lg:w-96 flex-col border-r border-slate-200 bg-white z-10",
         isMobileListVisible ? "flex" : "hidden md:flex"
       )}>
         <div className="p-4 border-b border-slate-200">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">Conversations</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-slate-900">Conversations</h2>
+            <button
+              onClick={() => setShowNewConv(v => !v)}
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              title="New Conversation"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
+
+          {showNewConv && (
+            <div className="mb-3 p-3 bg-slate-50 rounded-lg space-y-2 border border-slate-200">
+              <Input
+                placeholder="Phone number *"
+                value={newPhone}
+                onChange={e => setNewPhone(e.target.value)}
+              />
+              <Input
+                placeholder="Customer name (optional)"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={createConversation} className="flex-1">Start</Button>
+                <Button size="sm" variant="outline" onClick={() => setShowNewConv(false)} className="flex-1">Cancel</Button>
+              </div>
+            </div>
+          )}
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input className="pl-9 bg-slate-50" placeholder="Search chats..." />
+            <Input
+              className="pl-9 bg-slate-50"
+              placeholder="Search chats..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto">
-          {CONVERSATIONS.map((chat) => (
-            <div 
-              key={chat.id}
-              onClick={() => handleSelectChat(chat.id)}
+          {loadingConvs && (
+            <div className="text-center py-8 text-slate-400 text-sm">
+              <div className="inline-block w-5 h-5 border-2 border-slate-200 border-t-[#25D366] rounded-full animate-spin mb-2" />
+              <p>Loading…</p>
+            </div>
+          )}
+
+          {!loadingConvs && filtered.length === 0 && (
+            <div className="text-center py-12 text-slate-400 px-4">
+              <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <p className="text-sm">No conversations yet.</p>
+              <p className="text-xs mt-1">Click + to start one.</p>
+            </div>
+          )}
+
+          {!loadingConvs && filtered.map(conv => (
+            <div
+              key={conv._id}
+              onClick={() => selectConversation(conv)}
               className={cn(
                 "p-4 border-b border-slate-100 cursor-pointer transition-colors hover:bg-slate-50",
-                activeChat === chat.id ? "bg-slate-50" : ""
+                activeConv?._id === conv._id ? "bg-slate-50" : ""
               )}
             >
               <div className="flex justify-between items-start mb-1">
-                <h3 className="font-semibold text-slate-900 truncate pr-2">{chat.name}</h3>
-                <span className="text-xs text-slate-500 whitespace-nowrap">{chat.time}</span>
+                <h3 className="font-semibold text-slate-900 truncate pr-2">{conv.name}</h3>
+                <span className="text-xs text-slate-500 whitespace-nowrap">{formatTime(conv.updatedAt)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <p className="text-sm text-slate-600 truncate pr-4">{chat.lastMessage}</p>
-                {chat.unread > 0 && (
+                <p className="text-sm text-slate-600 truncate pr-4">{conv.lastMessage || "No messages yet"}</p>
+                {conv.unread > 0 && (
                   <span className="bg-[#25D366] text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shrink-0">
-                    {chat.unread}
+                    {conv.unread}
                   </span>
                 )}
               </div>
               <div className="mt-2 flex items-center gap-1">
-                {chat.status === 'ai_active' ? (
+                {conv.status === "ai_active" ? (
                   <span className="inline-flex items-center text-[10px] font-medium text-[#25D366] bg-[#25D366]/10 px-1.5 py-0.5 rounded">
                     <Bot className="w-3 h-3 mr-1" /> AI Active
                   </span>
@@ -78,28 +279,28 @@ export function ConversationsPage() {
         </div>
       </div>
 
-      {/* Main Chat Area */}
+      {/* Chat Area */}
       <div className={cn(
         "flex-1 flex-col bg-[#E5DDD5] relative",
         !isMobileListVisible ? "flex" : "hidden md:flex"
       )}>
-        {activeUser ? (
+        {activeConv ? (
           <>
-            {/* Chat Header */}
+            {/* Header */}
             <div className="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between z-10 shrink-0">
               <div className="flex items-center gap-3">
-                <button 
+                <button
                   className="md:hidden p-2 -ml-2 text-slate-600 hover:text-slate-900"
-                  onClick={handleBackToList}
+                  onClick={() => setIsMobileListVisible(true)}
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-medium text-slate-600 shrink-0">
-                  {activeUser.name.substring(0,2).toUpperCase()}
+                  {activeConv.name.substring(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">{activeUser.name}</h3>
-                  <p className="text-xs text-slate-500">{activeUser.phone}</p>
+                  <h3 className="font-semibold text-slate-900">{activeConv.name}</h3>
+                  <p className="text-xs text-slate-500">{activeConv.phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1 sm:gap-2">
@@ -109,92 +310,79 @@ export function ConversationsPage() {
               </div>
             </div>
 
-            {/* AI Control Banner */}
+            {/* AI Banner */}
             <div className="bg-white/90 backdrop-blur-sm border-b border-slate-200 p-2 flex justify-between items-center px-4 shrink-0">
               <div className="flex items-center gap-2">
-                <Bot className={cn("w-4 h-4", activeUser.status === 'ai_active' ? "text-[#25D366]" : "text-slate-400")} />
+                <Bot className={cn("w-4 h-4", activeConv.status === "ai_active" ? "text-[#25D366]" : "text-slate-400")} />
                 <span className="text-sm font-medium text-slate-700">
-                  {activeUser.status === 'ai_active' ? 'AI is managing this chat' : 'AI paused - Human taking over'}
+                  {activeConv.status === "ai_active" ? "AI is managing this chat" : "AI paused — Human taking over"}
                 </span>
               </div>
               <button className="text-sm font-medium text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-3 py-1 rounded-md">
-                {activeUser.status === 'ai_active' ? 'Take Over' : 'Resume AI'}
+                {activeConv.status === "ai_active" ? "Take Over" : "Resume AI"}
               </button>
             </div>
 
-            {/* Chat Messages */}
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div className="text-center">
-                <span className="text-xs font-medium text-slate-500 bg-white/60 px-2 py-1 rounded-md">Today</span>
+                <span className="text-xs font-medium text-slate-500 bg-white/60 px-2 py-1 rounded-md">
+                  {new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+                </span>
               </div>
-              
-              <div className="flex justify-start">
-                <div className="bg-white rounded-lg p-3 max-w-[85%] sm:max-w-[70%] shadow-sm">
-                  <p className="text-sm text-slate-900">Hi, can I book a gel manicure for tomorrow?</p>
-                  <span className="text-[10px] text-slate-400 block text-right mt-1">10:42 AM</span>
-                </div>
-              </div>
-              
-              <div className="flex justify-end">
-                <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[85%] sm:max-w-[70%] shadow-sm relative group">
-                  <div className="absolute -left-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Bot className="w-4 h-4 text-slate-400" />
+
+              {loadingMsgs && (
+                <div className="text-center py-6 text-slate-400 text-sm">Loading messages…</div>
+              )}
+
+              {!loadingMsgs && messages.map((msg, i) => (
+                <div key={msg._id || i} className={cn("flex", msg.sender === "user" ? "justify-start" : "justify-end")}>
+                  <div className={cn(
+                    "rounded-lg p-3 max-w-[85%] sm:max-w-[70%] shadow-sm",
+                    msg.sender === "user" ? "bg-white" : "bg-[#DCF8C6]"
+                  )}>
+                    <p className="text-sm text-slate-900 whitespace-pre-line">{msg.text}</p>
+                    <span className={cn(
+                      "text-[10px] block text-right mt-1",
+                      msg.sender === "user" ? "text-slate-400" : "text-slate-500"
+                    )}>
+                      {msg.time || (msg.createdAt ? formatTime(msg.createdAt) : "")}
+                    </span>
                   </div>
-                  <p className="text-sm text-slate-900">
-                    Hello! 👋 I can help you with that. We have these times available tomorrow for a Gel Manicure (Rs 800, 45 mins):
-                    <br/><br/>
-                    1. 2:00 PM<br/>
-                    2. 3:30 PM<br/>
-                    3. 4:15 PM
-                    <br/><br/>
-                    Please reply with the number of your preferred time.
-                  </p>
-                  <span className="text-[10px] text-slate-500 block text-right mt-1">10:42 AM</span>
                 </div>
-              </div>
+              ))}
 
-              <div className="flex justify-start">
-                <div className="bg-white rounded-lg p-3 max-w-[85%] sm:max-w-[70%] shadow-sm">
-                  <p className="text-sm text-slate-900">2</p>
-                  <span className="text-[10px] text-slate-400 block text-right mt-1">10:44 AM</span>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[85%] sm:max-w-[70%] shadow-sm relative group">
-                  <div className="absolute -left-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Bot className="w-4 h-4 text-slate-400" />
+              {isTyping && (
+                <div className="flex justify-end">
+                  <div className="bg-[#DCF8C6] rounded-lg px-4 py-3 shadow-sm flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:0ms]" />
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                    <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce [animation-delay:300ms]" />
                   </div>
-                  <p className="text-sm text-slate-900">
-                    Perfect! I've booked you in for a Gel Manicure tomorrow at 3:30 PM. 🎉
-                    <br/><br/>
-                    You'll receive a reminder 2 hours before your appointment. See you then!
-                  </p>
-                  <span className="text-[10px] text-slate-500 block text-right mt-1">10:44 AM</span>
                 </div>
-              </div>
+              )}
 
-              <div className="flex justify-start">
-                <div className="bg-white rounded-lg p-3 max-w-[85%] sm:max-w-[70%] shadow-sm">
-                  <p className="text-sm text-slate-900">Perfect, see you tomorrow!</p>
-                  <span className="text-[10px] text-slate-400 block text-right mt-1">10:45 AM</span>
-                </div>
-              </div>
+              <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
+            {/* Input */}
             <div className="p-3 bg-white z-10 shrink-0">
               <div className="flex items-end gap-2 bg-slate-50 rounded-xl p-2 border border-slate-200">
-                <button className="p-2 text-slate-400 hover:text-slate-600 rounded-full shrink-0">
-                  <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-                </button>
-                <textarea 
+                <textarea
+                  ref={textareaRef}
                   className="flex-1 max-h-32 min-h-[40px] bg-transparent resize-none focus:outline-none py-2 text-sm text-slate-900"
-                  placeholder="Type a message..."
+                  placeholder="Simulate a customer message…"
                   rows={1}
-                ></textarea>
-                <button className="w-10 h-10 rounded-full bg-[#128C7E] flex items-center justify-center text-white shrink-0 hover:bg-[#075E54] transition-colors">
-                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  value={inputText}
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyDown}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!inputText.trim() || isTyping}
+                  className="w-10 h-10 rounded-full bg-[#128C7E] flex items-center justify-center text-white shrink-0 hover:bg-[#075E54] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send className="w-4 h-4 ml-0.5" />
                 </button>
               </div>
             </div>
@@ -205,7 +393,7 @@ export function ConversationsPage() {
               <MessageSquare className="w-10 h-10 text-slate-400" />
             </div>
             <h3 className="text-xl font-medium text-slate-900 mb-2">BookFlow Web</h3>
-            <p className="max-w-md">Select a conversation to read messages or send a reply. The AI handles basic bookings automatically.</p>
+            <p className="max-w-md text-sm">Select a conversation to view messages. Use the + button to start a new one.</p>
           </div>
         )}
       </div>

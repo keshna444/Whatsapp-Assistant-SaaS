@@ -1,13 +1,29 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "../../components/ui";
+import { Button, Card, CardContent, Input } from "../../components/ui";
+import { useAuth } from "../../contexts/AuthContext";
 import bookFlowLogo from "../../../styles/BookFlowLogo.png";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    setError("");
+    setLoading(true);
+    try {
+      await login(email, password);
+      navigate("/dashboard");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,22 +42,43 @@ export function LoginPage() {
 
         <Card>
           <CardContent className="pt-6">
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {error}
+              </div>
+            )}
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium leading-none text-slate-700">Email address</label>
-                  <Input id="email" type="email" placeholder="you@example.com" required />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label htmlFor="password" className="text-sm font-medium leading-none text-slate-700">Password</label>
                     <a href="#" className="text-sm font-medium text-[#25D366] hover:text-[#1fae54]">Forgot password?</a>
                   </div>
-                  <Input id="password" type="password" placeholder="••••••••" required />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
                 </div>
               </div>
 
-              <Button type="submit" fullWidth size="lg">Sign in</Button>
+              <Button type="submit" fullWidth size="lg" disabled={loading}>
+                {loading ? "Signing in…" : "Sign in"}
+              </Button>
             </form>
           </CardContent>
         </Card>

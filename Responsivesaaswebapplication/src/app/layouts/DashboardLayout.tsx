@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Outlet, NavLink } from "react-router";
+import { Outlet, NavLink, useNavigate } from "react-router";
 import {
   LayoutDashboard,
   MessageCircle,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import bookFlowLogo from "../../styles/BookFlowLogo.png";
 import { cn } from "../components/ui";
+import { useAuth } from "../contexts/AuthContext";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/dashboard", end: true },
@@ -28,12 +29,23 @@ const navItems = [
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const initials = user?.name
+    ? user.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()
+    : "??";
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -49,7 +61,7 @@ export function DashboardLayout() {
             <img src={bookFlowLogo} alt="BookFlow" className="h-8 w-8 object-contain" />
             <span className="text-xl font-bold tracking-tight">BookFlow</span>
           </div>
-          <button 
+          <button
             className="ml-auto lg:hidden text-white/70 hover:text-white"
             onClick={() => setSidebarOpen(false)}
           >
@@ -66,8 +78,8 @@ export function DashboardLayout() {
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActive 
-                  ? "bg-white/10 text-white" 
+                isActive
+                  ? "bg-white/10 text-white"
                   : "text-white/70 hover:bg-white/5 hover:text-white"
               )}
             >
@@ -80,14 +92,17 @@ export function DashboardLayout() {
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 px-3 py-2">
             <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-medium">
-              JD
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">Jane Doe</p>
-              <p className="text-xs text-white/50 truncate">jane@example.com</p>
+              <p className="text-sm font-medium truncate">{user?.name || "Demo User"}</p>
+              <p className="text-xs text-white/50 truncate">{user?.email || "demo@bookflow.local"}</p>
             </div>
           </div>
-          <button className="mt-2 flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+          <button
+            onClick={handleLogout}
+            className="mt-2 flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+          >
             <LogOut className="h-5 w-5" />
             Sign out
           </button>
@@ -99,14 +114,14 @@ export function DashboardLayout() {
         {/* Topbar */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shrink-0">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               className="lg:hidden text-slate-500 hover:text-slate-700"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-6 w-6" />
             </button>
             <h1 className="text-lg font-semibold text-slate-900 hidden sm:block">
-              Beauty Studio Dashboard
+              {user ? `${user.name}'s Dashboard` : "BookFlow Dashboard"}
             </h1>
           </div>
 

@@ -12,6 +12,7 @@ import { ServicesPage } from "./pages/Dashboard/ServicesPage";
 import { CustomersPage } from "./pages/Dashboard/CustomersPage";
 import { AnalyticsPage } from "./pages/Dashboard/AnalyticsPage";
 import { SettingsPage } from "./pages/Dashboard/SettingsPage";
+import { PublicBookingPage } from "./pages/PublicBookingPage";
 
 function RootLayout() {
   return (
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       { path: "login", Component: LoginPage },
       { path: "signup", Component: SignupPage },
       { path: "onboarding", Component: OnboardingPage },
+      { path: "book/:businessSlug", Component: PublicBookingPage },
       {
         path: "dashboard",
         Component: DashboardLayout,

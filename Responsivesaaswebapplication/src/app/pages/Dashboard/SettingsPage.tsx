@@ -1,10 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button, Input, Card, CardContent, CardHeader, CardTitle, Badge } from "../../components/ui";
-import { Lock, CreditCard, Bot, User, Bell, Globe } from "lucide-react";
+import { Lock, CreditCard, Bot, User, Bell } from "lucide-react";
 import { cn } from "../../components/ui";
+import { apiFetch } from "../../utils/api";
+
+type OpeningHours = { open: string; close: string };
+
+type Profile = {
+  businessName: string;
+  businessType: string;
+  phone: string;
+  address: string;
+  description: string;
+  openingDays: string[];
+  openingHours: OpeningHours;
+  bookingNotes: string;
+  aiInstructions: string;
+  whatsappNumber: string;
+};
+
+const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+const DEFAULT_PROFILE: Profile = {
+  businessName: '',
+  businessType: 'salon',
+  phone: '',
+  address: '',
+  description: '',
+  openingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  openingHours: { open: '09:00', close: '18:00' },
+  bookingNotes: '',
+  aiInstructions: '',
+  whatsappNumber: '',
+};
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
+  const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const TABS = [
     { id: "general", label: "General", icon: User },
@@ -12,6 +47,64 @@ export function SettingsPage() {
     { id: "notifications", label: "Notifications", icon: Bell },
     { id: "billing", label: "Billing & Plans", icon: CreditCard },
   ];
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoadingProfile(true);
+      try {
+        const res = await apiFetch('/business/profile');
+        if (res.ok) {
+          const data = await res.json();
+          setProfile({
+            businessName: data.businessName || '',
+            businessType: data.businessType || 'salon',
+            phone: data.phone || '',
+            address: data.address || '',
+            description: data.description || '',
+            openingDays: data.openingDays || DEFAULT_PROFILE.openingDays,
+            openingHours: data.openingHours || DEFAULT_PROFILE.openingHours,
+            bookingNotes: data.bookingNotes || '',
+            aiInstructions: data.aiInstructions || '',
+            whatsappNumber: data.whatsappNumber || '',
+          });
+        }
+      } catch {
+        // not connected or no profile yet — start with empty form
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    setProfileMsg(null);
+    try {
+      const res = await apiFetch('/business/profile', {
+        method: 'PUT',
+        body: JSON.stringify(profile),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Save failed.');
+      }
+      setProfileMsg({ type: 'success', text: 'Business profile saved successfully.' });
+    } catch (err: unknown) {
+      setProfileMsg({ type: 'error', text: err instanceof Error ? err.message : 'Failed to save profile.' });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const toggleDay = (day: string) => {
+    setProfile(p => ({
+      ...p,
+      openingDays: p.openingDays.includes(day)
+        ? p.openingDays.filter(d => d !== day)
+        : [...p.openingDays, day],
+    }));
+  };
 
   return (
     <div className="space-y-6">
@@ -21,7 +114,7 @@ export function SettingsPage() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
-        {/* Settings Navigation */}
+        {/* Navigation */}
         <div className="w-full md:w-64 shrink-0">
           <nav className="flex md:flex-col gap-2 overflow-x-auto pb-2 md:pb-0">
             {TABS.map((tab) => (
@@ -30,8 +123,8 @@ export function SettingsPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                  activeTab === tab.id 
-                    ? "bg-slate-100 text-slate-900" 
+                  activeTab === tab.id
+                    ? "bg-slate-100 text-slate-900"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
@@ -42,30 +135,103 @@ export function SettingsPage() {
           </nav>
         </div>
 
-        {/* Settings Content */}
+        {/* Content */}
         <div className="flex-1">
           {activeTab === "general" && (
             <div className="space-y-6">
+              {profileMsg && (
+                <div className={cn(
+                  "p-3 rounded-lg text-sm border",
+                  profileMsg.type === 'success'
+                    ? "bg-green-50 border-green-200 text-green-700"
+                    : "bg-red-50 border-red-200 text-red-700"
+                )}>
+                  {profileMsg.text}
+                </div>
+              )}
+
               <Card>
                 <CardHeader>
                   <CardTitle>Business Profile</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">Business Name</label>
-                      <Input defaultValue="Beauty Studio" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700">Phone Number (WhatsApp)</label>
-                      <Input defaultValue="+230 5123 4567" disabled className="bg-slate-50" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Address</label>
-                    <Input defaultValue="123 Coastal Road, Grand Baie, Mauritius" />
-                  </div>
-                  <Button>Save Changes</Button>
+                  {loadingProfile ? (
+                    <div className="text-center py-6 text-slate-400 text-sm">Loading profile…</div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">Business Name *</label>
+                          <Input
+                            placeholder="e.g. Beauty Studio"
+                            value={profile.businessName}
+                            onChange={e => setProfile(p => ({ ...p, businessName: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">Business Type *</label>
+                          <select
+                            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366]"
+                            value={profile.businessType}
+                            onChange={e => setProfile(p => ({ ...p, businessType: e.target.value }))}
+                          >
+                            <option value="salon">Salon</option>
+                            <option value="barber">Barber</option>
+                            <option value="clinic">Clinic</option>
+                            <option value="sme">SME</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">Phone Number</label>
+                          <Input
+                            placeholder="+230 5123 4567"
+                            value={profile.phone}
+                            onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-700">WhatsApp Number</label>
+                          <Input
+                            placeholder="+230 5123 4567"
+                            value={profile.whatsappNumber}
+                            onChange={e => setProfile(p => ({ ...p, whatsappNumber: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Address</label>
+                        <Input
+                          placeholder="123 Coastal Road, Grand Baie, Mauritius"
+                          value={profile.address}
+                          onChange={e => setProfile(p => ({ ...p, address: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Description</label>
+                        <textarea
+                          className="flex w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366] min-h-[72px] resize-none"
+                          placeholder="Brief description of your business…"
+                          value={profile.description}
+                          onChange={e => setProfile(p => ({ ...p, description: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Booking Notes</label>
+                        <textarea
+                          className="flex w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366] min-h-[72px] resize-none"
+                          placeholder="Notes shown to customers when booking (e.g. 'Please arrive 5 minutes early')…"
+                          value={profile.bookingNotes}
+                          onChange={e => setProfile(p => ({ ...p, bookingNotes: e.target.value }))}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <Button onClick={handleSaveProfile} disabled={savingProfile || loadingProfile}>
+                    {savingProfile ? "Saving…" : "Save Changes"}
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -74,21 +240,46 @@ export function SettingsPage() {
                   <CardTitle>Working Hours</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
-                    <div key={day} className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-slate-700 w-24">{day}</span>
-                      <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" />
-                        <span className="text-slate-500">to</span>
-                        <Input type="time" defaultValue="18:00" className="w-32" />
-                      </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Opening Time</label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        className="w-32"
+                        value={profile.openingHours.open}
+                        onChange={e => setProfile(p => ({ ...p, openingHours: { ...p.openingHours, open: e.target.value } }))}
+                      />
+                      <span className="text-slate-500">to</span>
+                      <Input
+                        type="time"
+                        className="w-32"
+                        value={profile.openingHours.close}
+                        onChange={e => setProfile(p => ({ ...p, openingHours: { ...p.openingHours, close: e.target.value } }))}
+                      />
                     </div>
-                  ))}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-slate-700 w-24">Sunday</span>
-                    <Badge variant="default" className="w-[280px] justify-center py-2 text-sm bg-slate-100">Closed</Badge>
                   </div>
-                  <Button className="mt-4">Save Hours</Button>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Open Days</label>
+                    <div className="flex flex-wrap gap-2">
+                      {ALL_DAYS.map(day => (
+                        <button
+                          key={day}
+                          onClick={() => toggleDay(day)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors",
+                            profile.openingDays.includes(day)
+                              ? "bg-[#25D366] text-white border-[#25D366]"
+                              : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                          )}
+                        >
+                          {day.substring(0, 3)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                    {savingProfile ? "Saving…" : "Save Hours"}
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -111,7 +302,7 @@ export function SettingsPage() {
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#25D366]"></div>
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium text-slate-900">Auto-Booking</h4>
@@ -124,17 +315,20 @@ export function SettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">AI Personality / Tone</label>
-                    <select className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366]">
-                      <option>Friendly & Professional (Default)</option>
-                      <option>Formal & Concise</option>
-                      <option>Casual & Enthusiastic (Uses emojis)</option>
-                    </select>
+                    <label className="text-sm font-medium text-slate-700">AI Instructions</label>
+                    <textarea
+                      className="flex w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366] min-h-[100px] resize-none"
+                      placeholder="Custom instructions for the AI (e.g. 'Always greet customers by name. Do not offer discounts. Cancellation must be done 24h in advance.')…"
+                      value={profile.aiInstructions}
+                      onChange={e => setProfile(p => ({ ...p, aiInstructions: e.target.value }))}
+                    />
+                    <Button onClick={handleSaveProfile} disabled={savingProfile} size="sm">
+                      {savingProfile ? "Saving…" : "Save Instructions"}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Feature Gating Example */}
               <Card className="relative overflow-hidden border-indigo-100">
                 <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center">
                   <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-3">
@@ -144,7 +338,6 @@ export function SettingsPage() {
                   <p className="text-sm text-slate-600 mt-1 max-w-md">Upgrade to Professional to train the AI on your specific cancellation policies, FAQ documents, and custom knowledge base.</p>
                   <Button className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">Upgrade to Pro</Button>
                 </div>
-                
                 <CardHeader>
                   <CardTitle className="text-slate-400">Custom Knowledge Base</CardTitle>
                 </CardHeader>
@@ -158,18 +351,34 @@ export function SettingsPage() {
             </div>
           )}
 
+          {activeTab === "notifications" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Preferences</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { label: 'New booking notifications', desc: 'Get notified when a customer books an appointment' },
+                  { label: 'Booking reminders', desc: 'Send automated reminders 2 hours before appointments' },
+                  { label: 'Cancellation alerts', desc: 'Get notified when a customer cancels' },
+                ].map(({ label, desc }) => (
+                  <div key={label} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                    <div>
+                      <h4 className="font-medium text-slate-900 text-sm">{label}</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" defaultChecked />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#25D366]"></div>
+                    </label>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           {activeTab === "billing" && (
             <div className="space-y-6">
-              {/* Subscription State - Expired Warning Example */}
-              {/* <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl flex items-start gap-3">
-                <Lock className="w-5 h-5 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold">Your trial has expired</h4>
-                  <p className="text-sm mt-1">Please upgrade your plan to continue using BookFlow's AI booking features.</p>
-                  <Button size="sm" variant="danger" className="mt-3">Upgrade Now</Button>
-                </div>
-              </div> */}
-
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <div>
@@ -186,7 +395,6 @@ export function SettingsPage() {
                     </div>
                     <Button>Upgrade Plan</Button>
                   </div>
-                  
                   <h4 className="text-sm font-medium text-slate-900 mb-4">Payment Method</h4>
                   <div className="border border-slate-200 rounded-lg p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">

@@ -1,13 +1,34 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button, Card, CardContent, Input } from "../../components/ui";
+import { useAuth } from "../../contexts/AuthContext";
 import bookFlowLogo from "../../../styles/BookFlowLogo.png";
 
 export function SignupPage() {
   const navigate = useNavigate();
+  const { register } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/onboarding");
+    setError("");
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await register(name, email, password);
+      navigate("/onboarding");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,27 +47,51 @@ export function SignupPage() {
 
         <Card>
           <CardContent className="pt-6">
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                {error}
+              </div>
+            )}
             <form onSubmit={handleSignup} className="space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium leading-none text-slate-700">Full Name</label>
-                  <Input id="name" type="text" placeholder="Jane Doe" required />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="business" className="text-sm font-medium leading-none text-slate-700">Business Name</label>
-                  <Input id="business" type="text" placeholder="Jane's Beauty Studio" required />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Jane Doe"
+                    required
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium leading-none text-slate-700">Email address</label>
-                  <Input id="email" type="email" placeholder="you@example.com" required />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-medium leading-none text-slate-700">Password</label>
-                  <Input id="password" type="password" placeholder="••••••••" required />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
                 </div>
               </div>
 
-              <Button type="submit" fullWidth size="lg">Create Account</Button>
+              <Button type="submit" fullWidth size="lg" disabled={loading}>
+                {loading ? "Creating account…" : "Create Account"}
+              </Button>
             </form>
           </CardContent>
         </Card>

@@ -1,11 +1,51 @@
 import { Link } from "react-router";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "../components/ui";
-import { MessageSquare, CalendarCheck, Clock, Users, Zap, CheckCircle2, Menu, X } from "lucide-react";
+import { MessageSquare, CalendarCheck, Clock, Users, Zap, CheckCircle2, Menu, X, Send } from "lucide-react";
 import bookFlowLogo from "../../styles/BookFlowLogo.png";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+
+type ChatMsg = { role: 'user' | 'ai'; text: string; time: string };
+
+const INITIAL_CHAT: ChatMsg[] = [
+  { role: 'user', text: "Hi! I'd like to book a gel manicure for tomorrow afternoon.", time: "10:42 AM" },
+  { role: 'ai', text: "Hello! 👋 I can help you with that. We have these times available tomorrow afternoon for a Gel Manicure (Rs 800, 45 mins):\n\n1. 2:00 PM\n2. 3:30 PM\n3. 4:15 PM\n\nPlease reply with the number of your preferred time.", time: "10:42 AM" },
+  { role: 'user', text: "2", time: "10:44 AM" },
+  { role: 'ai', text: "Perfect! I've booked you in for a Gel Manicure tomorrow at 3:30 PM. 🎉\n\nYou'll receive a reminder 2 hours before your appointment. See you then!", time: "10:44 AM" },
+];
 
 export function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>(INITIAL_CHAT);
+  const [chatInput, setChatInput] = useState('');
+  const [chatTyping, setChatTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, chatTyping]);
+
+  const sendChat = async () => {
+    if (!chatInput.trim() || chatTyping) return;
+    const userText = chatInput.trim();
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setChatMessages(prev => [...prev, { role: 'user', text: userText, time: now }]);
+    setChatInput('');
+    setChatTyping(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText }),
+      });
+      const data = await res.json();
+      const reply = data.reply ?? data.message ?? 'Sorry, I could not process that.';
+      setChatMessages(prev => [...prev, { role: 'ai', text: reply, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    } catch {
+      setChatMessages(prev => [...prev, { role: 'ai', text: 'Sorry, I am unavailable right now.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    } finally {
+      setChatTyping(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -98,39 +138,40 @@ export function LandingPage() {
                       <div className="text-white/80 text-xs">AI Assistant online</div>
                     </div>
                   </div>
-                  <div className="p-4 bg-[#E5DDD5] space-y-4 h-[400px] overflow-y-auto">
-                    <div className="flex justify-end">
-                      <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%] shadow-sm text-sm">
-                        Hi! I'd like to book a gel manicure for tomorrow afternoon.
-                        <div className="text-[10px] text-gray-500 text-right mt-1">10:42 AM</div>
+                  <div className="p-4 bg-[#E5DDD5] space-y-4 h-[360px] overflow-y-auto">
+                    {chatMessages.map((msg, i) => (
+                      <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`${msg.role === 'user' ? 'bg-[#DCF8C6]' : 'bg-white'} rounded-lg p-3 max-w-[80%] shadow-sm text-sm`}>
+                          {msg.text.split('\n').map((line, j, arr) => (
+                            <span key={j}>{line}{j < arr.length - 1 && <br />}</span>
+                          ))}
+                          <div className="text-[10px] text-gray-500 text-right mt-1">{msg.time}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex justify-start">
-                      <div className="bg-white rounded-lg p-3 max-w-[80%] shadow-sm text-sm">
-                        Hello! 👋 I can help you with that. We have these times available tomorrow afternoon for a Gel Manicure (Rs 800, 45 mins):
-                        <br/><br/>
-                        1. 2:00 PM<br/>
-                        2. 3:30 PM<br/>
-                        3. 4:15 PM
-                        <br/><br/>
-                        Please reply with the number of your preferred time.
-                        <div className="text-[10px] text-gray-500 text-right mt-1">10:42 AM</div>
+                    ))}
+                    {chatTyping && (
+                      <div className="flex justify-start">
+                        <div className="bg-white rounded-lg p-3 max-w-[80%] shadow-sm text-sm text-slate-500 italic">typing…</div>
                       </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <div className="bg-[#DCF8C6] rounded-lg p-3 max-w-[80%] shadow-sm text-sm">
-                        2
-                        <div className="text-[10px] text-gray-500 text-right mt-1">10:44 AM</div>
-                      </div>
-                    </div>
-                    <div className="flex justify-start">
-                      <div className="bg-white rounded-lg p-3 max-w-[80%] shadow-sm text-sm">
-                        Perfect! I've booked you in for a Gel Manicure tomorrow at 3:30 PM. 🎉
-                        <br/><br/>
-                        You'll receive a reminder 2 hours before your appointment. See you then!
-                        <div className="text-[10px] text-gray-500 text-right mt-1">10:44 AM</div>
-                      </div>
-                    </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+                  <div className="bg-[#F0F0F0] px-3 py-2 flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && sendChat()}
+                      placeholder="Type a message"
+                      className="flex-1 rounded-full bg-white px-4 py-2 text-sm focus:outline-none"
+                    />
+                    <button
+                      onClick={sendChat}
+                      disabled={chatTyping || !chatInput.trim()}
+                      className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center text-white disabled:opacity-50"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>
