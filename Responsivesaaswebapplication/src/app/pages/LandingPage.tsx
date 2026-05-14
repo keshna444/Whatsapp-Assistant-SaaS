@@ -96,7 +96,7 @@ export function LandingPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden py-16 md:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <section className="relative overflow-hidden py-10 md:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="flex flex-col space-y-8 text-center lg:text-left">
               <div className="space-y-4">
@@ -120,8 +120,8 @@ export function LandingPage() {
                 </Link>
               </div>
               <div className="flex items-center gap-4 justify-center lg:justify-start text-sm text-slate-500">
-                <div className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-[#25D366]" /> No credit card required</div>
-                <div className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-[#25D366]" /> 14-day free trial</div>
+                <div className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-[#25D366]" /> 7-day free trial · Cancel anytime</div>
+                <div className="flex items-center gap-1"><CheckCircle2 className="h-4 w-4 text-[#25D366]" /> Have a code? Redeem it at checkout</div>
               </div>
             </div>
 
