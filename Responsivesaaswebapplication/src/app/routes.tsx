@@ -13,6 +13,8 @@ import { CustomersPage } from "./pages/Dashboard/CustomersPage";
 import { AnalyticsPage } from "./pages/Dashboard/AnalyticsPage";
 import { SettingsPage } from "./pages/Dashboard/SettingsPage";
 import { PublicBookingPage } from "./pages/PublicBookingPage";
+import { AdminRoute } from "./components/AdminRoute";
+import AdminDashboard from "./pages/admin";
 
 function RootLayout() {
   return (
@@ -32,6 +34,14 @@ export const router = createBrowserRouter([
       { path: "signup", Component: SignupPage },
       { path: "onboarding", Component: OnboardingPage },
       { path: "book/:businessSlug", Component: PublicBookingPage },
+      {
+        path: "admin",
+        element: (
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        ),
+      },
       {
         path: "dashboard",
         Component: DashboardLayout,

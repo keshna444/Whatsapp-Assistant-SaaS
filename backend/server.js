@@ -13,6 +13,7 @@ const customerRoutes = require('./routes/customerRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const seedRoutes = require('./routes/seedRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const { dbCheck } = require('./middleware/dbCheck');
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/webhook', webhookRoutes);
 
 app.get('/', (req, res) => {
