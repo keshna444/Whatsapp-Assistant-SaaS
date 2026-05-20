@@ -95,7 +95,7 @@ export function DashboardLayout() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-[#0A1128] text-white transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col",
+        "fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-[#0A1128] text-white transition-transform duration-300 ease-in-out border-r border-white/5 lg:static lg:translate-x-0 flex flex-col",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
@@ -154,15 +154,16 @@ export function DashboardLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Topbar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 shrink-0">
-          <div className="flex items-center gap-4">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 shrink-0">
+          <div className="flex items-center gap-3">
             <button
-              className="lg:hidden text-slate-500 hover:text-slate-700"
+              className="lg:hidden p-1.5 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-lg font-semibold text-slate-900 hidden sm:block">
+            <h1 className="text-base sm:text-lg font-semibold text-slate-900 truncate">
               {user ? `${user.name}'s Dashboard` : "BookFlow Dashboard"}
             </h1>
           </div>
