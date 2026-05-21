@@ -3,6 +3,7 @@ import { createBrowserRouter, Outlet } from "react-router";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/Auth/LoginPage";
 import { SignupPage } from "./pages/Auth/SignupPage";
+import { ForgotPasswordPage } from "./pages/Auth/ForgotPasswordPage";
 import { OnboardingPage } from "./pages/Onboarding/OnboardingPage";
 import { DashboardLayout } from "./layouts/DashboardLayout";
 import { DashboardOverview } from "./pages/Dashboard/DashboardOverview";
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { index: true, Component: LandingPage },
       { path: "login", Component: LoginPage },
       { path: "signup", Component: SignupPage },
+      { path: "forgot-password", Component: ForgotPasswordPage },
       { path: "onboarding", Component: OnboardingPage },
       { path: "book/:businessSlug", Component: PublicBookingPage },
       {

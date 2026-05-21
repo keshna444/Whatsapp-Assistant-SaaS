@@ -41,7 +41,7 @@ export function SignupPage() {
           </Link>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">Create your account</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Start your 14-day free trial. No credit card required.
+            Start your 7-day free trial. Cancel anytime.
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export function SignupPage() {
               </div>
 
               <Button type="submit" fullWidth size="lg" disabled={loading}>
-                {loading ? "Creating account…" : "Create Account"}
+                {loading ? "Creating account…" : "Start 7-Day Free Trial"}
               </Button>
             </form>
           </CardContent>
