@@ -41,14 +41,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      throw new Error("Cannot connect to the server. Please make sure the backend is running and try again.");
+    }
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Login failed.");
+      let errMsg = "Login failed.";
+      try {
+        const err = await res.json();
+        errMsg = err.message || errMsg;
+      } catch { /* ignore parse errors */ }
+      throw new Error(errMsg);
     }
     const data = await res.json();
     setToken(data.token);
@@ -58,14 +67,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (name: string, email: string, password: string) => {
-    const res = await fetch(`${API_BASE}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+    } catch {
+      throw new Error("Cannot connect to the server. Please make sure the backend is running and try again.");
+    }
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Registration failed.");
+      let errMsg = "Registration failed.";
+      try {
+        const err = await res.json();
+        errMsg = err.message || errMsg;
+      } catch { /* ignore parse errors */ }
+      throw new Error(errMsg);
     }
     const data = await res.json();
     setToken(data.token);

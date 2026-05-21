@@ -63,7 +63,7 @@ export function LoginPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label htmlFor="password" className="text-sm font-medium leading-none text-slate-700">Password</label>
-                    <a href="#" className="text-sm font-medium text-[#25D366] hover:text-[#1fae54]">Forgot password?</a>
+                    <Link to="/forgot-password" className="text-sm font-medium text-[#25D366] hover:text-[#1fae54]">Forgot password?</Link>
                   </div>
                   <Input
                     id="password"
@@ -86,7 +86,7 @@ export function LoginPage() {
         <p className="text-center text-sm text-slate-600">
           Don't have an account?{' '}
           <Link to="/signup" className="font-medium text-[#25D366] hover:text-[#1fae54]">
-            Start your 14-day free trial
+            Start your 7-day free trial
           </Link>
         </p>
       </div>
