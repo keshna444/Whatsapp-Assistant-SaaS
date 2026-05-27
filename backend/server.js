@@ -12,6 +12,7 @@ const serviceRoutes = require('./routes/serviceRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const seedRoutes = require('./routes/seedRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const { dbCheck } = require('./middleware/dbCheck');
@@ -47,6 +48,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api/messages', messageRoutes);
 app.use('/api/seed', seedRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/webhook', webhookRoutes);
@@ -57,3 +59,5 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+

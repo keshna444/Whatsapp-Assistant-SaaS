@@ -3,6 +3,7 @@
 
 const mongoose = require('mongoose');
 const Conversation = require('../models/Conversation');
+const Message = require('../models/Message');
 const { getAiReply } = require('./chatController');
 const demoStore = require('../store/demoStore');
 
@@ -51,6 +52,16 @@ const processMessage = async (body) => {
   if (!text) return;
 
   console.log(`Incoming WhatsApp message from ${from}: ${text}`);
+
+  if (isDbConnected()) {
+    await Message.create({
+      businessId: entry?.id || 'default',
+      customerPhone: from,
+      message: text,
+      direction: 'inbound',
+      timestamp: new Date(),
+    });
+  }
 
   const reply = getAiReply(text);
 
