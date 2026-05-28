@@ -6,6 +6,7 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const { getAiReply } = require('./chatController');
 const demoStore = require('../store/demoStore');
+const socketManager = require('../socket/socketManager');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
@@ -63,11 +64,11 @@ const processMessage = async (body) => {
     });
   }
 
-  const reply = getAiReply(text);
-
   // Persist to conversation store
   if (isDbConnected()) {
     let conv = await Conversation.findOne({ phone: from });
+    const isNewConversation = !conv;
+
     if (!conv) {
       conv = await Conversation.create({
         phone: from,
@@ -77,13 +78,75 @@ const processMessage = async (body) => {
         lastMessage: text,
       });
     }
+
     conv.messages.push({ text, sender: 'user' });
-    conv.messages.push({ text: reply, sender: 'bot' });
+
+    const businessId = conv.businessId?.toString() || 'default';
+    const convId = conv._id.toString();
+
+    // Signal AI is typing before generating reply
+    socketManager.emitAiTyping(businessId, convId, true);
+
+    // Only auto-reply when AI mode is active
+    let reply = null;
+    if (conv.status === 'ai_active') {
+      reply = getAiReply(text);
+      conv.messages.push({ text: reply, sender: 'bot' });
+    }
+
     conv.lastMessage = text;
+    conv.unread += 1;
     await conv.save();
+
+    const savedMsgs = conv.messages;
+    const userMsg = savedMsgs[savedMsgs.length - (reply ? 2 : 1)];
+    const botMsg = reply ? savedMsgs[savedMsgs.length - 1] : null;
+
+    socketManager.emitAiTyping(businessId, convId, false);
+
+    if (isNewConversation) {
+      const { messages: _m, ...convSummary } = conv.toObject();
+      socketManager.emitNewConversation(businessId, { ...convSummary, _id: convId });
+    }
+
+    socketManager.emitNewMessage(businessId, convId, {
+      _id: userMsg._id.toString(),
+      text: userMsg.text,
+      sender: userMsg.sender,
+      createdAt: userMsg.createdAt,
+    });
+
+    if (botMsg) {
+      socketManager.emitNewMessage(businessId, convId, {
+        _id: botMsg._id.toString(),
+        text: botMsg.text,
+        sender: botMsg.sender,
+        createdAt: botMsg.createdAt,
+      });
+    }
+
+    socketManager.emitConversationUpdated(businessId, convId, {
+      lastMessage: text,
+      updatedAt: conv.updatedAt,
+      unread: conv.unread,
+    });
+
+    // Send reply via WhatsApp Cloud API (only if AI mode and real tokens configured)
+    if (reply) {
+      const token = process.env.WHATSAPP_ACCESS_TOKEN;
+      const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+      if (
+        token && token !== 'your_whatsapp_access_token' &&
+        phoneNumberId && phoneNumberId !== 'your_phone_number_id'
+      ) {
+        await sendWhatsAppReply(from, reply, token, phoneNumberId);
+      }
+    }
   } else {
-    // Demo mode — persist in-memory
+    // Demo mode — persist in-memory and emit socket events
     let conv = demoStore.conversations.find(c => c.phone === from);
+    const isNewConversation = !conv;
+
     if (!conv) {
       conv = {
         _id: demoStore.nextId(),
@@ -98,17 +161,37 @@ const processMessage = async (body) => {
       };
       demoStore.conversations.push(conv);
     }
-    conv.messages.push({ _id: demoStore.nextId(), text, sender: 'user', createdAt: new Date().toISOString() });
-    conv.messages.push({ _id: demoStore.nextId(), text: reply, sender: 'bot', createdAt: new Date().toISOString() });
-    conv.lastMessage = text;
-    conv.updatedAt = new Date().toISOString();
-  }
 
-  // Send reply via WhatsApp Cloud API (only if real tokens are configured)
-  const token = process.env.WHATSAPP_ACCESS_TOKEN;
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  if (token && token !== 'your_whatsapp_access_token' && phoneNumberId && phoneNumberId !== 'your_phone_number_id') {
-    await sendWhatsAppReply(from, reply, token, phoneNumberId);
+    const userMsg = { _id: demoStore.nextId(), text, sender: 'user', createdAt: new Date().toISOString() };
+    conv.messages.push(userMsg);
+
+    socketManager.emitAiTyping('default', conv._id, true);
+
+    let botMsg = null;
+    if (conv.status === 'ai_active') {
+      const reply = getAiReply(text);
+      botMsg = { _id: demoStore.nextId(), text: reply, sender: 'bot', createdAt: new Date().toISOString() };
+      conv.messages.push(botMsg);
+    }
+
+    conv.lastMessage = text;
+    conv.unread += 1;
+    conv.updatedAt = new Date().toISOString();
+
+    socketManager.emitAiTyping('default', conv._id, false);
+
+    if (isNewConversation) {
+      const { messages: _m, ...convSummary } = conv;
+      socketManager.emitNewConversation('default', convSummary);
+    }
+
+    socketManager.emitNewMessage('default', conv._id, userMsg);
+    if (botMsg) socketManager.emitNewMessage('default', conv._id, botMsg);
+    socketManager.emitConversationUpdated('default', conv._id, {
+      lastMessage: text,
+      updatedAt: conv.updatedAt,
+      unread: conv.unread,
+    });
   }
 };
 

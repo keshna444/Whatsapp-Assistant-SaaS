@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Conversation, SendMessageResponse } from '../types/conversations';
+import type { Conversation, ConversationStatus, SendMessageResponse } from '../types/conversations';
 
 export const conversationsApi = {
   getAll: (): Promise<Conversation[]> =>
@@ -13,4 +13,8 @@ export const conversationsApi = {
 
   sendMessage: (id: string, message: string): Promise<SendMessageResponse> =>
     api.post(`/conversations/${id}/message`, { message }).then(r => r.data),
+
+  /** Persists AI/human takeover to the backend. */
+  toggleStatus: (id: string, status: ConversationStatus): Promise<{ status: ConversationStatus; updatedAt: string }> =>
+    api.patch(`/conversations/${id}/status`, { status }).then(r => r.data),
 };

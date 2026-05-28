@@ -1,7 +1,9 @@
 require('dotenv').config();
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const socketManager = require('./socket/socketManager');
 
 const authRoutes = require('./routes/authRoutes');
 const businessRoutes = require('./routes/businessRoutes');
@@ -21,7 +23,7 @@ const app = express();
 
 connectDB();
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
     if (!origin || /^http:\/\/localhost(:\d+)?$/.test(origin)) {
       return callback(null, true);
@@ -32,8 +34,9 @@ app.use(cors({
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-}));
+};
 
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Auth works in demo mode when DB is offline (returns a demo token)
@@ -57,7 +60,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'WhatsApp Assistant API is running.' });
 });
 
+// Wrap Express in an HTTP server so Socket.IO can share the same port
+const httpServer = http.createServer(app);
+
+// Initialize Socket.IO — all controllers access it via socketManager.getIO()
+socketManager.init(httpServer, corsOptions);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));

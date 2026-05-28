@@ -1,5 +1,7 @@
-import { ArrowLeft, Phone, Video, MoreVertical, Bot } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Phone, Video, MoreVertical, Bot, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '../../../components/ui';
+import { getSocket } from '../../../services/socket';
 import type { Conversation } from '../../../types/conversations';
 
 type Props = {
@@ -11,6 +13,20 @@ type Props = {
 export function ChatHeader({ conversation: conv, onBack, onToggleAI }: Props) {
   const displayName = conv.name || conv.phone;
   const isAiActive = conv.status === 'ai_active';
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    const socket = getSocket();
+    setConnected(socket.connected);
+    const onConnect = () => setConnected(true);
+    const onDisconnect = () => setConnected(false);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
+  }, []);
 
   return (
     <>
@@ -25,13 +41,34 @@ export function ChatHeader({ conversation: conv, onBack, onToggleAI }: Props) {
             <ArrowLeft className="w-5 h-5" />
           </button>
 
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-slate-500 flex items-center justify-center font-semibold text-white shrink-0 text-sm select-none">
-            {displayName.substring(0, 2).toUpperCase()}
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-slate-500 flex items-center justify-center font-semibold text-white shrink-0 text-sm select-none">
+              {displayName.substring(0, 2).toUpperCase()}
+            </div>
+            {/* Live connection dot */}
+            <span
+              className={cn(
+                'absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white',
+                connected ? 'bg-[#25D366]' : 'bg-slate-300'
+              )}
+            />
           </div>
 
           <div>
             <h3 className="font-semibold text-slate-900 text-sm leading-tight">{displayName}</h3>
-            <p className="text-xs text-slate-400">{conv.phone}</p>
+            <p className="text-xs text-slate-400 flex items-center gap-1">
+              {connected ? (
+                <>
+                  <Wifi className="w-3 h-3 text-[#25D366]" />
+                  <span className="text-[#25D366]">Live</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3 h-3" />
+                  <span>{conv.phone}</span>
+                </>
+              )}
+            </p>
           </div>
         </div>
 
