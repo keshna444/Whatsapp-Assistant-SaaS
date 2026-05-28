@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Check } from "lucide-react";
 import { cn } from "../../components/ui";
-import bookFlowLogo from "../../../styles/BookFlowLogo.png";
+import { BookFlowLogo } from "../../components/BookFlowLogo";
 import { Step1BusinessDetails, Step1Data } from "./Step1BusinessDetails";
 import { Step2ConnectWhatsApp } from "./Step2ConnectWhatsApp";
 import { Step3TestAI } from "./Step3TestAI";
@@ -24,8 +24,7 @@ export function OnboardingPage() {
       {/* Navbar */}
       <header className="bg-white border-b border-slate-200 h-16 flex items-center px-4 sm:px-6 lg:px-8 shrink-0">
         <div className="flex items-center gap-2">
-          <img src={bookFlowLogo} alt="BookFlow" className="h-8 w-8 object-contain" />
-          <span className="text-xl font-bold tracking-tight text-slate-900">BookFlow</span>
+          <BookFlowLogo height="h-10 md:h-11" />
         </div>
       </header>
 

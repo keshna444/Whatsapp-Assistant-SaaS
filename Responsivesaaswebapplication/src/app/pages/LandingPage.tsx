@@ -5,7 +5,7 @@ import {
   Menu, X, Send, Star, ArrowRight, Smartphone, Bot,
   TrendingUp, Shield,
 } from "lucide-react";
-import bookFlowLogo from "../../styles/BookFlowLogo.png";
+import { BookFlowLogo, BookFlowIcon } from "../components/BookFlowLogo";
 import { useState, useRef, useEffect } from "react";
 
 type ChatMsg = { role: 'user' | 'ai'; text: string; time: string };
@@ -182,9 +182,9 @@ export function LandingPage() {
       {/* ── Navbar ── */}
       <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto w-full flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-            <img src={bookFlowLogo} alt="BookFlow" className="h-8 w-8 object-contain" />
-            <span className="text-xl font-bold tracking-tight text-slate-900">BookFlow</span>
+          <Link to="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+            <BookFlowIcon size="lg" />
+            <span className="text-2xl font-bold text-slate-900 tracking-tight">BookFlow</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
@@ -659,9 +659,9 @@ export function LandingPage() {
 
             {/* Brand */}
             <div className="sm:col-span-2 lg:col-span-1">
-              <Link to="/" className="flex items-center gap-2 mb-3 hover:opacity-90 transition-opacity w-fit">
-                <img src={bookFlowLogo} alt="BookFlow" className="h-8 w-8 object-contain" />
-                <span className="text-lg font-bold text-white">BookFlow</span>
+              <Link to="/" className="flex items-center gap-3 mb-4 hover:opacity-90 transition-opacity w-fit">
+                <BookFlowIcon size="md" />
+                <span className="text-xl font-bold text-white tracking-tight">BookFlow</span>
               </Link>
               <p className="text-sm leading-relaxed max-w-xs">
                 WhatsApp booking automation for any service or appointment-based business.

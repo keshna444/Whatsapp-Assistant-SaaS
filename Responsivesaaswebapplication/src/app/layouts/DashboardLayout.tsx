@@ -15,7 +15,7 @@ import {
   Bot,
   CheckCheck,
 } from "lucide-react";
-import bookFlowLogo from "../../styles/BookFlowLogo.png";
+import { BookFlowLogo, BookFlowIcon } from "../components/BookFlowLogo";
 import { cn } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -99,9 +99,9 @@ export function DashboardLayout() {
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-2">
-            <img src={bookFlowLogo} alt="BookFlow" className="h-8 w-8 object-contain" />
-            <span className="text-xl font-bold tracking-tight">BookFlow</span>
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <BookFlowIcon size="md" />
+            <span className="text-white font-bold text-lg tracking-tight">BookFlow</span>
           </div>
           <button
             className="ml-auto lg:hidden text-white/70 hover:text-white"

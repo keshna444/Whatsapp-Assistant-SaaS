@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Button, Card, CardContent, Input } from "../../components/ui";
 import { CheckCircle2, ArrowLeft, KeyRound } from "lucide-react";
-import bookFlowLogo from "../../../styles/BookFlowLogo.png";
+import { BookFlowLogo } from "../../components/BookFlowLogo";
 
 type View = "request" | "sent" | "reset" | "done";
 
@@ -47,9 +47,8 @@ export function ForgotPasswordPage() {
 
         {/* Logo */}
         <div className="flex flex-col items-center text-center">
-          <Link to="/" className="flex items-center gap-2 mb-6">
-            <img src={bookFlowLogo} alt="BookFlow" className="h-10 w-10 object-contain" />
-            <span className="text-2xl font-bold tracking-tight text-slate-900">BookFlow</span>
+          <Link to="/" className="mb-6 hover:opacity-90 transition-opacity">
+            <BookFlowLogo height="h-12 md:h-14" />
           </Link>
         </div>
 

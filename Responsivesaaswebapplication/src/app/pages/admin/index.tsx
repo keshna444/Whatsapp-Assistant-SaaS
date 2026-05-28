@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { BookFlowIcon } from "../../components/BookFlowLogo";
 import {
   Users,
   MessageSquare,
@@ -788,10 +789,8 @@ export default function AdminDashboard() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">B</span>
-          </div>
+        <div className="flex items-center gap-2.5">
+          <BookFlowIcon size="sm" />
           <div>
             <div className="font-bold text-gray-900 text-sm leading-tight">BookFlow</div>
             <div className="text-xs text-gray-400 leading-tight">Admin Panel</div>
